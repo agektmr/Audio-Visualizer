@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="synthesizer.js"></script>
+    <script src="audio_visualizer.js"></script>
+    <script>
+      var qs = function(query) {
+        return document.querySelector(query);
+      }
+      var sound = null;
+      window.onload = function() {
+        qs('header').ondragenter = function() {
+          qs('header').style.backgroundColor = '#eee';
+        };
+        qs('header').ondragleave = function() {
+          qs('header').style.backgroundColor = '';
+        };
+        qs('header').ondragover = function(e) {
+          e.preventDefault();
+        }
+        qs('header').ondrop = function(e) {
+          e.preventDefault();
+          e.stopPropagation(); 
+          qs('header').style.backgroundColor = '';
+          var length = e.dataTransfer.files.length;
+          if (length == 0 || length > 1) {
+            alert('drop 1 audio file');
+            return;
+          }
+          sound = new Synthesizer(e.dataTransfer.files[0], function(buffer) {
+            bufferLength = buffer.getChannelData(0).length;
+            qs('#first').max = bufferLength;
+            qs('#second').max = bufferLength;
+            audio_visualizer.load(buffer);
+            qs('#play').disabled = false;
+            qs('#stop').disabled = false;
+          });
+        };
+
+        var audio_visualizer = new AudioVisualizer(1000, 500);
+        qs('#container').appendChild(audio_visualizer.getSVG());
+        var bufferLength = 0;
+        qs('#play').onclick = function() {
+          sound.play();
+        };
+        qs('#stop').onclick = function() {
+          sound.stop();
+        };
+        var changeRange = function() {
+          var timeRange = AudioSampleRange.getTimeFromSample(
+            parseInt(qs('#first').value),
+            parseInt(qs('#second').value)
+          );
+          qs('#timebegin').value = timeRange.begin;
+          qs('#timeend').value = timeRange.end;
+          audio_visualizer.drawByRange(
+            parseInt(qs('#first').value),
+            parseInt(qs('#second').value)
+          );
+        }
+        qs('#first').onchange = changeRange;
+        qs('#second').onchange = changeRange;
+      }
+    </script>
+    <style>
+      header {
+        margin-bottom:10px;
+        padding:10px;
+        border:solid 1px #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      Drop audio file here
+    </header>
+    <section id="container">
+      <input type="button" id="play" value="play" disabled/>
+      <input type="button" id="stop" value="stop" disabled/><br/>
+      <input type="range" id="first" min="0" max="50000" value="0" style="width:750px;" />
+      begin:<input type="text" id="timebegin" value="" readonly/><br/>
+      <input type="range" id="second" min="0" max="50000" value="50000" style="width:750px;" />
+      end:<input type="text" id="timeend" value="" readonly/><br/>
+    </section>
+    <footer></footer>
+  </body>
+</html>
